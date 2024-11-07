@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Model Selector and API Key Generator</title>
+</head>
+<body>
+    <h1>Select a Model and Generate API Key</h1>
+    <form id="apiKeyForm">
+        <label for="model">Choose a model:</label>
+        <select id="model" name="model">
+            {% for model in models %}
+                <option value="{{ model }}">{{ model }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" onclick="generateApiKey()">Generate API Key</button>
+    </form>
+
+    <h3>Generated API Keys:</h3>
+    <ul id="apiKeyList">
+        {% for api_key, model_name in api_keys.items() %}
+            <li>
+                {{ api_key }} (Model: {{ model_name }}) 
+                <button onclick="deleteApiKey('{{ api_key }}')">Delete</button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        function generateApiKey() {
+            const model = document.getElementById("model").value;
+
+            fetch("/generate_api_key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model: model })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.api_key) {
+                    const newListItem = document.createElement("li");
+                    newListItem.textContent = `${data.api_key} (Model: ${data.model})`;
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Delete";
+                    deleteButton.onclick = () => deleteApiKey(data.api_key);
+                    newListItem.appendChild(deleteButton);
+                    document.getElementById("apiKeyList").appendChild(newListItem);
+                } else {
+                    alert("Error generating API key: " + data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error generating API key:", error);
+            });
+        }
+
+        function deleteApiKey(apiKey) {
+            fetch("/delete_api_key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_key: apiKey })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    location.reload();  // Reload to reflect changes
+                } else {
+                    alert("Error deleting API key: " + data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting API key:", error);
+            });
+        }
+    </script>
+</body>
+</html>
